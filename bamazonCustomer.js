@@ -18,60 +18,63 @@ connection.connect(function (err) {
 function displayChoices() {
     let query = connection.query(
         "SELECT item_id, product_name, price FROM products;",
-    
-        function(err, res) {
-            if (err) throw err;
+
+        function (err, res) {
+            if (err) return console.log(err);
+
             console.log("Have a look-see:");
             console.log(res);
-            askAboutPurchase();
-            console.log(query);
-        }
-    )
-    //console.log(query);  <--question on this              ??????????????
+            console.log(query.sql);
+            // askAboutPurchase(res);
+
+            //console.log(query);  <--question on this              ??????????????
 
 
-
-    function askAboutPurchase(){
-        function loopForIDs(){
-            for (i = 0 ; i < res.length; i++){
-                console.log(res.item_id[i]);
+            const arr = [];
+            for (let i = 0; i < res.length; i++) {
+                // console.log(res.item_id[i]);
+                arr[i] = { name: res[i].product_name, value: res[i].item_id, short: res[i].product_name };
             }
-        }
-        inquirer.prompt(
-            [
-                {
-                message: "What's the ID of the product you'd like to purchase?",
-                type: "list",
-                choices: [loopForIDs()],
-                name: "idNumber"
-                }
-            ]
-        ).then(function(inquirerResponse){
-            let response = inquirerResponse.idNumber;
-            console.log("You chose ID "+ response);
-        
-    //narrow down res to the item user chose
-    
-                function unitsOfPurchase(){
-                    inquirer.prompt[
-                        {
-                            message: "How many would you like to purchase?",
-                            type: "input",
-                            name: "numberOfItems"
-                        }
-                    ].then(function(inquirerResponse){
-                        let response2 = inquirerResponse.numberOfItems;
-                        console.log("You chose " + response2);
-                        if (parseInt(response2) > res.stock_quantity){
+            // }
+            console.log(arr)
+            inquirer.prompt(
+                [
+                    {
+                        type: "list",
+                        message: "What's the ID of the product you'd like to purchase?",
+                        choices: arr,
+                        name: "idNumber"
+                    },
+                    {
+                        message: "How many would you like to purchase?",
+                        type: "input",
+                        name: "numberOfItems"
+                    }
+
+                ]
+            ).then(function (inquirerResponse) {
+                let response = inquirerResponse.idNumber;
+                console.log("You chose ID " + response);
+                console.log(inquirerResponse.numberOfItems);
+                let query2 = connection.query(
+                    "SELECT stock_quantity FROM products WHERE ?",
+                    {
+                        item_id: inquirerResponse.idNumber
+                    },
+
+                    function (err, res) {
+                        if (err) return console.log(err);
+                        if (parseInt(inquirerResponse.numberOfItems) > res[0].stock_quantity) {
                             console.log("Too much! Please order fewer of this item.");
-                            connection.end();
                         }
                         else {
                             console.log("Thank you for your purchase! The product is on its way to you.")
                         }
-                    })  
-                }
-            })
-            }
-    }
+                        console.log(res);
 
+                        connection.end();
+                    }
+                )
+            })
+        })
+}
